@@ -8,26 +8,23 @@ import (
 
 func videoDownload(c tele.Context) error {
 	for _, t := range strings.Split(c.Text(), " ") {
-		if isValidURL(t) && contains(t, cfg.URLs) {
-			filename := downloadVideo(t)
-			err := c.Reply(c.Message(), &tele.Video{File: tele.FromURL(cfg.Host + filename), FileName: filename, MIME: "video/mp4"})
-			if err != nil {
-				lit.Error(err.Error())
+		if isValidURL(t) {
+			if contains(t, cfg.URLs) {
+				filename := downloadVideo(t)
+				err := c.Reply(&tele.Video{File: tele.FromURL(cfg.Host + filename), FileName: filename, MIME: "video/mp4"})
+				if err != nil {
+					lit.Error(err.Error())
+				}
+			} else {
+				// For twitter we send the same url with only fx appended to it
+				if strings.HasPrefix(t, "https://twitter.com") {
+					err := c.Reply(strings.Replace(t, "https://twitter.com", "https://fxtwitter.com", 1))
+					if err != nil {
+						lit.Error(err.Error())
+					}
+				}
 			}
-		}
-	}
 
-	return nil
-}
-
-// For twitter we send the same url with only fx appended to it
-func twitterReplacer(c tele.Context) error {
-	for _, t := range strings.Split(c.Text(), " ") {
-		if isValidURL(t) && strings.HasPrefix(t, "https://twitter.com") {
-			err := c.Reply(c.Message(), strings.Replace(t, "https://twitter.com", "https://fxtwitter.com", 1))
-			if err != nil {
-				lit.Error(err.Error())
-			}
 		}
 	}
 

@@ -67,9 +67,7 @@ func main() {
 	}
 
 	b.Handle(tele.OnQuery, inlineQuery)
-
 	b.Handle(tele.OnText, videoDownload)
-	b.Handle(tele.OnText, twitterReplacer)
 
 	// Start bot
 	lit.Info("videoDownloader is now running")
