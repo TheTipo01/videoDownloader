@@ -11,14 +11,14 @@ func videoDownload(c tele.Context) error {
 		if isValidURL(t) {
 			if contains(t, cfg.URLs) {
 				filename := downloadVideo(t)
-				err := c.Reply(&tele.Video{File: tele.FromURL(cfg.Host + filename), FileName: filename, MIME: "video/mp4"})
+				err := c.Reply(&tele.Video{File: tele.FromURL(cfg.Host + filename), FileName: filename, MIME: "video/mp4"}, tele.Silent)
 				if err != nil {
 					lit.Error(err.Error())
 				}
 			} else {
 				// For twitter we send the same url with only fx appended to it
 				if strings.HasPrefix(t, "https://twitter.com") {
-					err := c.Reply(strings.Replace(t, "https://twitter.com", "https://fxtwitter.com", 1))
+					err := c.Reply(strings.Replace(t, "https://twitter.com", "https://fxtwitter.com", 1), tele.Silent)
 					if err != nil {
 						lit.Error(err.Error())
 					}
