@@ -9,17 +9,18 @@ import (
 func videoDownload(c tele.Context) error {
 	for _, e := range c.Message().Entities {
 		if e.Type == tele.EntityURL {
-			if contains(e.URL, cfg.URLs) {
+			url := c.Message().EntityText(e)
 
-				filename := downloadVideo(e.URL)
+			if contains(url, cfg.URLs) {
+				filename := downloadVideo(url)
 				err := c.Reply(&tele.Video{File: tele.FromURL(cfg.Host + filename), FileName: filename, MIME: "video/mp4"}, tele.Silent)
 				if err != nil {
 					lit.Error(err.Error())
 				}
 			} else {
 				// For twitter we send the same url with only fx appended to it
-				if strings.HasPrefix(e.URL, "https://twitter.com") {
-					err := c.Reply(strings.Replace(e.URL, "https://twitter.com", "https://fxtwitter.com", 1), tele.Silent)
+				if strings.HasPrefix(url, "https://twitter.com") {
+					err := c.Reply(strings.Replace(url, "https://twitter.com", "https://fxtwitter.com", 1), tele.Silent)
 					if err != nil {
 						lit.Error(err.Error())
 					}
