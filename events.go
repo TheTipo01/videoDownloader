@@ -18,7 +18,7 @@ func videoDownload(c tele.Context) error {
 					lit.Error(err.Error())
 				}
 			} else {
-				// For twitter we send the same url with only fx appended to it
+				// For twitter, we send the same url with only fx appended to it
 				if strings.HasPrefix(url, "https://twitter.com") {
 					err := c.Reply(strings.Replace(url, "https://twitter.com", "https://fxtwitter.com", 1), tele.Silent)
 					if err != nil {
