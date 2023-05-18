@@ -9,5 +9,9 @@ urls:
   - fb.watch
   - reddit.com
 
+# A group or channel to send video to
+# Needed as telegram bots can't send file directly when using inline mode
+channel:
+
 # Log level
 loglevel: informational

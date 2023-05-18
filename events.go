@@ -42,6 +42,9 @@ func inlineQuery(c tele.Context) error {
 	if isValidURL(text) && contains(text, cfg.URLs) {
 		filename := checkAndDownload(text)
 
+		// Upload video to channel, so we can send it even in inline mode
+		_, _ = c.Bot().Send(tele.ChatID(cfg.Channel), cache[filename])
+
 		// Create result
 		results[0] = &tele.VideoResult{
 			Cache: cache[filename].FileID,
