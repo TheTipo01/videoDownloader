@@ -4,7 +4,6 @@ import (
 	"github.com/bwmarrin/lit"
 	"github.com/kkyr/fig"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -17,7 +16,8 @@ const (
 )
 
 var (
-	cfg config
+	cfg   config
+	cache map[string]*tele.Video
 )
 
 func init() {
@@ -47,13 +47,11 @@ func init() {
 			lit.Error("Cannot create temp directory, %s", err)
 		}
 	}
+
+	cache = make(map[string]*tele.Video)
 }
 
 func main() {
-	// Start HTTP server to serve generated .mp3 files
-	http.Handle("/temp/", http.StripPrefix("/temp", http.FileServer(http.Dir(tempFolder))))
-	go http.ListenAndServe(":8070", nil)
-
 	// Create bot
 	pref := tele.Settings{
 		Token:  cfg.Token,

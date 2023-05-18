@@ -12,8 +12,9 @@ func videoDownload(c tele.Context) error {
 			url := c.Message().EntityText(e)
 
 			if contains(url, cfg.URLs) {
-				filename := downloadVideo(url)
-				err := c.Reply(&tele.Video{File: tele.FromURL(cfg.Host + filename), FileName: filename, MIME: "video/mp4"}, tele.Silent)
+				filename := checkAndDownload(url)
+
+				err := c.Reply(cache[filename], tele.Silent)
 				if err != nil {
 					lit.Error(err.Error())
 				}
@@ -39,17 +40,16 @@ func inlineQuery(c tele.Context) error {
 	)
 
 	if isValidURL(text) && contains(text, cfg.URLs) {
-		fileName := downloadVideo(text)
+		filename := checkAndDownload(text)
 
 		// Create result
 		results[0] = &tele.VideoResult{
-			URL:      cfg.Host + fileName,
-			Title:    "Send video",
-			MIME:     "video/mp4",
-			ThumbURL: cfg.Host + "icon.jpg",
+			Cache: cache[filename].FileID,
+			Title: "Send video",
+			MIME:  "video/mp4",
 		}
 
-		results[0].SetResultID(fileName)
+		results[0].SetResultID(filename)
 
 		// Send video
 		return c.Answer(&tele.QueryResponse{

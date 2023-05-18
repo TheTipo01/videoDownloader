@@ -1,7 +1,5 @@
 # Telegram bot token
 token:
-# Hostname of the exposed web server
-host: http://example.com:8070/temp/
 
 # URLs of the video hosting services to download from
 urls:
