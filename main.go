@@ -4,15 +4,10 @@ import (
 	"github.com/bwmarrin/lit"
 	"github.com/kkyr/fig"
 	"log"
-	"os"
 	"strings"
 	"time"
 
 	tele "gopkg.in/telebot.v3"
-)
-
-const (
-	tempFolder = "./temp/"
 )
 
 var (
@@ -39,13 +34,6 @@ func init() {
 
 	case "logdebug", "debug":
 		lit.LogLevel = lit.LogDebug
-	}
-
-	// Create folders used by the bot
-	if _, err = os.Stat(tempFolder); err != nil {
-		if err = os.Mkdir(tempFolder, 0755); err != nil {
-			lit.Error("Cannot create temp directory, %s", err)
-		}
 	}
 
 	cache = make(map[string]*tele.Video)

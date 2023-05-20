@@ -6,7 +6,6 @@ import (
 	"github.com/bwmarrin/lit"
 	tele "gopkg.in/telebot.v3"
 	"net/url"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -40,17 +39,21 @@ func checkAndDownload(link string) string {
 
 	filename := idGen(link) + ".mp4"
 
-	_, err := os.Stat(tempFolder + filename)
-	if _, ok := cache[filename]; !ok || os.IsNotExist(err) {
+	if _, ok := cache[filename]; !ok {
 		// Starts yt-dlp with the arguments to select the best audio
-		ytDlp := exec.Command("yt-dlp", "-f", "bestvideo+bestaudio", "-f", "mp4", "-q", "-a", "-", "--geo-bypass", "--output", tempFolder+filename)
+		ytDlp := exec.Command("yt-dlp", "-f", "bestvideo+bestaudio", "-f", "mp4", "-q", "-a", "-", "--geo-bypass", "-o", "-")
 		ytDlp.Stdin = strings.NewReader(link)
-		out, err := ytDlp.CombinedOutput()
-		if err != nil {
-			lit.Error("Error while downloading video: %s", string(out))
-		}
+		out, _ := ytDlp.StdoutPipe()
+		_ = ytDlp.Start()
 
-		cache[filename] = &tele.Video{File: tele.FromDisk(tempFolder + filename), FileName: filename, MIME: "video/mp4"}
+		cache[filename] = &tele.Video{File: tele.FromReader(out), FileName: filename, MIME: "video/mp4"}
+
+		go func() {
+			err := ytDlp.Wait()
+			if err != nil {
+				lit.Error(err.Error())
+			}
+		}()
 	}
 	
 	return filename
