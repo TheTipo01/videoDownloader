@@ -16,12 +16,6 @@ builds:
       - arm64
 archives:
   - format: zip
-    replacements:
-      '386': i386
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      amd64: x86_64
     files:
       - README.md
       - LICENSE
