@@ -2,8 +2,8 @@ version: '3.9'
 services:
   bot:
     image: thetipo01/videodownloader
-# Uncomment the following line to build the image locally
-#    build: .
     restart: always
     volumes:
       - ${PWD}/config.yml:/config.yml
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
