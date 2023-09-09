@@ -9,7 +9,7 @@ import (
 func videoDownload(c tele.Context) error {
 	for _, e := range c.Message().Entities {
 		if e.Type == tele.EntityURL {
-			url := c.Message().EntityText(e)
+			url := cleanURL(c.Message().EntityText(e))
 
 			if contains(url, cfg.URLs) {
 				filename := checkAndDownload(url)
@@ -40,6 +40,7 @@ func inlineQuery(c tele.Context) error {
 	)
 
 	if isValidURL(text) && contains(text, cfg.URLs) {
+		text = cleanURL(text)
 		filename := checkAndDownload(text)
 
 		// Upload video to channel, so we can send it even in inline mode

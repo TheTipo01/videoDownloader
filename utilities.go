@@ -55,6 +55,23 @@ func checkAndDownload(link string) string {
 			}
 		}()
 	}
-	
+
 	return filename
+}
+
+// cleanURL removes tracking and other unnecessary parameters from a URL
+func cleanURL(link string) string {
+	u, _ := url.Parse(link)
+	q := u.Query()
+
+	q.Del("utm_source")
+	q.Del("utm_medium")
+	q.Del("utm_name")
+	q.Del("feature")
+	q.Del("igshid")
+	q.Del("si")
+
+	u.RawQuery = q.Encode()
+
+	return u.String()
 }
