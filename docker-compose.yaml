@@ -4,6 +4,6 @@ services:
     image: thetipo01/videodownloader
     restart: always
     volumes:
-      - ${PWD}/config.yml:/config.yml
+      - ./data:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro

@@ -34,7 +34,8 @@ func contains(str string, checkFor []string) bool {
 	return false
 }
 
-func checkAndDownload(link string) string {
+func checkAndDownload(link string) (string, bool) {
+	hit := true
 	lit.Debug(link)
 
 	filename := idGen(link) + ".mp4"
@@ -54,9 +55,11 @@ func checkAndDownload(link string) string {
 				lit.Error(err.Error())
 			}
 		}()
+
+		hit = false
 	}
 
-	return filename
+	return filename, hit
 }
 
 // cleanURL removes tracking and other unnecessary parameters from a URL

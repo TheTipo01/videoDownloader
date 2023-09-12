@@ -162,3 +162,4 @@ $RECYCLE.BIN/
 config.yml
 videoDownloader
 temp/
+cache.db

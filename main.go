@@ -1,9 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/bwmarrin/lit"
 	"github.com/kkyr/fig"
 	"log"
+	_ "modernc.org/sqlite"
 	"strings"
 	"time"
 
@@ -13,12 +15,13 @@ import (
 var (
 	cfg   config
 	cache map[string]*tele.Video
+	db    *sql.DB
 )
 
 func init() {
 	lit.LogLevel = lit.LogError
 
-	err := fig.Load(&cfg, fig.File("config.yml"))
+	err := fig.Load(&cfg, fig.File("config.yml"), fig.Dirs(".", "./data"))
 	if err != nil {
 		lit.Error(err.Error())
 		return
@@ -37,6 +40,16 @@ func init() {
 	}
 
 	cache = make(map[string]*tele.Video)
+
+	// Open database connection
+	db, err = sql.Open("sqlite", "./data/cache.db")
+	if err != nil {
+		lit.Error("Error opening db connection, %s", err)
+		return
+	}
+
+	execQuery(cacheTable)
+	load()
 }
 
 func main() {
@@ -58,4 +71,6 @@ func main() {
 	// Start bot
 	lit.Info("videoDownloader is now running")
 	b.Start()
+
+	_ = db.Close()
 }
