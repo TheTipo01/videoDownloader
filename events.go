@@ -15,12 +15,8 @@ func videoDownload(c tele.Context) error {
 				filename, hit := checkAndDownload(url)
 
 				err := c.Reply(cache[filename], tele.Silent)
-				if err != nil {
-					lit.Error(err.Error())
-				}
-
-				if !hit {
-					save(cache[filename])
+				if err == nil && !hit {
+					go save(cache[filename])
 				}
 			} else {
 				// For twitter, we send the same url with only fx appended to it
@@ -48,7 +44,10 @@ func inlineQuery(c tele.Context) error {
 		filename, hit := checkAndDownload(text)
 
 		// Upload video to channel, so we can send it even in inline mode
-		_, _ = c.Bot().Send(tele.ChatID(cfg.Channel), cache[filename])
+		_, err := c.Bot().Send(tele.ChatID(cfg.Channel), cache[filename])
+		if err != nil {
+			return err
+		}
 
 		if !hit {
 			go save(cache[filename])
