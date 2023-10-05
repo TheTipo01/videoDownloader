@@ -25,6 +25,13 @@ func videoDownload(c tele.Context) error {
 					if err != nil {
 						lit.Error(err.Error())
 					}
+				} else {
+					if strings.HasPrefix(url, "https://x.com") {
+						err := c.Reply(strings.Replace(url, "https://x.com", "https://fixupx.com", 1), tele.Silent)
+						if err != nil {
+							lit.Error(err.Error())
+						}
+					}
 				}
 			}
 		}
