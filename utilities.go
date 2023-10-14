@@ -3,11 +3,20 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/base32"
+	"encoding/json"
 	"github.com/bwmarrin/lit"
 	tele "gopkg.in/telebot.v3"
+	"net/http"
 	"net/url"
 	"os/exec"
 	"strings"
+)
+
+type Media uint8
+
+const (
+	Video Media = iota
+	Album
 )
 
 // Checks if a string is a valid URL
@@ -34,20 +43,20 @@ func contains(str string, checkFor []string) bool {
 	return false
 }
 
-func checkAndDownload(link string) (string, bool) {
+func downloadYtDlp(link string) (string, bool) {
 	hit := true
 	lit.Debug(link)
 
 	filename := idGen(link) + ".mp4"
 
-	if _, ok := cache[filename]; !ok {
+	if _, ok := cacheVideo[filename]; !ok {
 		// Starts yt-dlp with the arguments to select the best audio
 		ytDlp := exec.Command("yt-dlp", "-f", "bestvideo+bestaudio", "-f", "mp4", "-q", "-a", "-", "--geo-bypass", "-o", "-")
 		ytDlp.Stdin = strings.NewReader(link)
 		out, _ := ytDlp.StdoutPipe()
 		_ = ytDlp.Start()
 
-		cache[filename] = &tele.Video{File: tele.FromReader(out), FileName: filename, MIME: "video/mp4"}
+		cacheVideo[filename] = &tele.Video{File: tele.FromReader(out), FileName: filename, MIME: "video/mp4"}
 
 		go func() {
 			err := ytDlp.Wait()
@@ -60,6 +69,45 @@ func checkAndDownload(link string) (string, bool) {
 	}
 
 	return filename, hit
+}
+
+func downloadTikTok(link string) (string, bool, Media) {
+	filename := idGen(link)
+
+	// Check cache
+	if _, ok := cacheAlbum[filename]; ok {
+		return filename, true, Album
+	} else {
+		filename += ".mp4"
+		if _, ok = cacheVideo[filename]; ok {
+			return filename, true, Video
+		}
+	}
+	// Remove the last four characters from filename
+	filename = filename[:len(filename)-4]
+
+	// Post to downloader
+	resp, err := http.Get(cfg.Downloader + "/api?url=" + link)
+	if err == nil && resp.StatusCode == http.StatusOK {
+		var d Downloader
+		_ = json.NewDecoder(resp.Body).Decode(&d)
+
+		switch d.Type {
+		case "video":
+			filename += ".mp4"
+			cacheVideo[filename] = &tele.Video{File: tele.FromURL(d.VideoData.NwmVideoUrlHQ), MIME: "video/mp4", FileName: filename}
+			return filename, false, Video
+		case "image":
+			album := make([]*tele.Photo, len(d.ImageData.NoWatermarkImageList))
+			for i, img := range d.ImageData.NoWatermarkImageList {
+				album[i] = &tele.Photo{File: tele.FromURL(img)}
+			}
+			cacheAlbum[filename] = &album
+			return filename, false, Album
+		}
+	}
+
+	return "", false, Video
 }
 
 // cleanURL removes tracking and other unnecessary parameters from a URL

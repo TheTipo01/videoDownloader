@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	cfg   config
-	cache map[string]*tele.Video
-	db    *sql.DB
+	cfg        config
+	cacheVideo map[string]*tele.Video
+	cacheAlbum map[string]*[]*tele.Photo
+	db         *sql.DB
 )
 
 func init() {
@@ -39,7 +40,8 @@ func init() {
 		lit.LogLevel = lit.LogDebug
 	}
 
-	cache = make(map[string]*tele.Video)
+	cacheVideo = make(map[string]*tele.Video)
+	cacheAlbum = make(map[string]*[]*tele.Photo)
 
 	// Open database connection
 	db, err = sql.Open("sqlite", "./data/cache.db")
@@ -48,7 +50,7 @@ func init() {
 		return
 	}
 
-	execQuery(cacheTable)
+	execQuery(videoTable, albumTable)
 	load()
 }
 

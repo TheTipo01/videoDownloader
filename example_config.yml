@@ -15,3 +15,8 @@ channel:
 
 # Log level
 loglevel: informational
+
+# TikTok downloader,
+# see https://github.com/Evil0ctal/Douyin_TikTok_Download_API/blob/main/README.en.md#deployment-method-1-linux
+# for more information on how to deploy it
+downloader: "http://localhost:8080"

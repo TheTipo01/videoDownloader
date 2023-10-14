@@ -1,6 +1,6 @@
 module github.com/TheTipo01/videoDownloader
 
-go 1.17
+go 1.21
 
 require (
 	github.com/bwmarrin/lit v0.0.0-20190813132558-fd4b44871312

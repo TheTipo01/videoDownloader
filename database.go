@@ -6,13 +6,16 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-const cacheTable = "CREATE TABLE IF NOT EXISTS `cache` ( `filename` VARCHAR(15) NOT NULL, `video` TEXT NOT NULL, PRIMARY KEY (`filename`) )"
+const videoTable = "CREATE TABLE IF NOT EXISTS `video` ( `filename` VARCHAR(15) NOT NULL, `video` TEXT NOT NULL, PRIMARY KEY (`filename`) )"
+const albumTable = "CREATE TABLE IF NOT EXISTS `album` ( `filename` VARCHAR(11) NOT NULL, `album` TEXT NOT NULL, PRIMARY KEY (`filename`) )"
 
-func execQuery(query string) {
-	_, err := db.Exec(query)
-	if err != nil {
-		lit.Error("Error executing query, %s", err)
-		return
+func execQuery(query ...string) {
+	for _, q := range query {
+		_, err := db.Exec(q)
+		if err != nil {
+			lit.Error("Error executing query, %s", err)
+			return
+		}
 	}
 }
 
@@ -22,7 +25,7 @@ func load() {
 		bytes    []byte
 	)
 
-	rows, err := db.Query("SELECT filename, video FROM cache")
+	rows, err := db.Query("SELECT filename, video FROM video")
 	if err != nil {
 		lit.Error("Error executing query, %s", err)
 		return
@@ -38,14 +41,43 @@ func load() {
 		}
 
 		_ = json.Unmarshal(bytes, &video)
-		cache[filename] = &video
+		cacheVideo[filename] = &video
+	}
+
+	rows, err = db.Query("SELECT filename, album FROM album")
+	if err != nil {
+		lit.Error("Error executing query, %s", err)
+		return
+	}
+
+	for rows.Next() {
+		var photos []*tele.Photo
+
+		err = rows.Scan(&filename, &bytes)
+		if err != nil {
+			lit.Error("Error scanning row, %s", err)
+			continue
+		}
+
+		err = json.Unmarshal(bytes, &photos)
+		cacheAlbum[filename] = &photos
 	}
 }
 
-func save(video *tele.Video) {
+func saveVideo(video *tele.Video) {
 	bytes, _ := json.Marshal(video)
 
-	_, err := db.Exec("INSERT INTO cache (filename, video) VALUES (?, ?)", video.FileName, bytes)
+	_, err := db.Exec("INSERT INTO video (filename, video) VALUES (?, ?)", video.FileName, bytes)
+	if err != nil {
+		lit.Error("Error executing query, %s", err)
+		return
+	}
+}
+
+func saveAlbum(album *[]*tele.Photo, filename string) {
+	bytes, _ := json.Marshal(album)
+
+	_, err := db.Exec("INSERT INTO album (filename, album) VALUES (?, ?)", filename, bytes)
 	if err != nil {
 		lit.Error("Error executing query, %s", err)
 		return
