@@ -71,6 +71,33 @@ func downloadYtDlp(link string) (string, bool) {
 	return filename, hit
 }
 
+func downloadAudio(link string) (string, bool) {
+	hit := true
+
+	filename := idGen(link) + ".mp3"
+
+	if _, ok := cacheAudio[filename]; !ok {
+		// Starts yt-dlp with the arguments to select the best audio
+		ytDlp := exec.Command("yt-dlp", "-f", "bestaudio", "-f", "mp3", "-q", "-a", "-", "--geo-bypass", "-o", "-")
+		ytDlp.Stdin = strings.NewReader(link)
+		out, _ := ytDlp.StdoutPipe()
+		_ = ytDlp.Start()
+
+		cacheAudio[filename] = &tele.Audio{File: tele.FromReader(out), FileName: filename, MIME: "audio/mp3"}
+
+		go func() {
+			err := ytDlp.Wait()
+			if err != nil {
+				lit.Error(err.Error())
+			}
+		}()
+
+		hit = false
+	}
+
+	return filename, hit
+}
+
 func downloadTikTok(link string) (string, bool, Media) {
 	filename := idGen(link)
 

@@ -12,55 +12,56 @@ func videoDownload(c tele.Context) error {
 			link := cleanURL(c.Message().EntityText(e))
 
 			if contains(link, cfg.URLs) {
-				// Use the downloader to get videos and albums from tiktok
+				var (
+					media    Media
+					filename string
+					hit      bool
+				)
+
 				if strings.Contains(link, "tiktok.com") {
-					filename, hit, media := downloadTikTok(link)
-					if filename != "" {
-						if media == Video {
-							err := c.Reply(cacheVideo[filename], tele.Silent)
-							if err == nil {
-								if !hit {
-									go saveVideo(cacheVideo[filename])
-									continue
+					// Use the downloader to get videos and albums from TikTok
+					filename, hit, media = downloadTikTok(link)
+				} else {
+					filename, hit = downloadYtDlp(link)
+					media = Video
+				}
+
+				if filename != "" {
+					if media == Video {
+						err := c.Reply(cacheVideo[filename], tele.Silent)
+						if err == nil && !hit {
+							go saveVideo(cacheVideo[filename])
+						}
+					} else {
+						if _, ok := cacheAlbum[filename]; ok {
+							photos := *cacheAlbum[filename]
+							album := make(tele.Album, 0, 10)
+
+							for i := 0; i < len(photos); i += 10 {
+								// Add photos to album
+								for j := 0; j < 10; j++ {
+									if i+j < len(photos) {
+										album = append(album, photos[i+j])
+									}
 								}
+
+								_ = c.SendAlbum(album, tele.Silent)
 							}
-						} else {
-							if _, ok := cacheAlbum[filename]; ok {
-								var err error
 
-								photos := *cacheAlbum[filename]
-								album := make(tele.Album, 0, 10)
+							if !hit {
+								go saveAlbum(&photos, filename)
+							}
 
-								for i := 0; i < len(photos); i += 10 {
-									// Add photos to album
-									for j := 0; j < 10; j++ {
-										if i+j < len(photos) {
-											album = append(album, photos[i+j])
-										}
-									}
-
-									err = c.SendAlbum(album, tele.Silent)
-									if err != nil {
-										break
-									}
-								}
-
-								if err == nil {
-									if !hit {
-										go saveAlbum(&photos, filename)
-										continue
-									}
+							// Handle audio
+							filename, hit = downloadAudio(link)
+							if filename != "" {
+								err := c.Reply(cacheAudio[filename], tele.Silent)
+								if err == nil && !hit {
+									go saveAudio(cacheAudio[filename])
 								}
 							}
 						}
 					}
-				}
-
-				filename, hit := downloadYtDlp(link)
-
-				err := c.Reply(cacheVideo[filename], tele.Silent)
-				if err == nil && !hit {
-					go saveVideo(cacheVideo[filename])
 				}
 			} else {
 				// For twitter, we send the same url with only fx appended to it
@@ -86,42 +87,74 @@ func videoDownload(c tele.Context) error {
 
 func inlineQuery(c tele.Context) error {
 	var (
-		results = make([]tele.Result, 1)
 		text    = c.Query().Text
+		results = make([]tele.Result, 0, 1)
 	)
 
 	if isValidURL(text) && contains(text, cfg.URLs) {
+		var (
+			media    Media
+			filename string
+			hit      bool
+		)
+
 		text = cleanURL(text)
-		filename, hit := downloadYtDlp(text)
 
-		// Upload video to channel, so we can send it even in inline mode
-		_, err := c.Bot().Send(tele.ChatID(cfg.Channel), cacheVideo[filename])
-		if err != nil {
-			return err
+		if strings.Contains(text, "tiktok.com") {
+			// Use the downloader to get videos and albums from TikTok
+			filename, hit, media = downloadTikTok(text)
+		} else {
+			filename, hit = downloadYtDlp(text)
+			media = Video
 		}
 
-		if !hit {
-			go saveVideo(cacheVideo[filename])
+		if filename != "" {
+			if media == Video {
+				// Upload video to channel, so we can send it even in inline mode
+				_, err := c.Bot().Send(tele.ChatID(cfg.Channel), cacheVideo[filename])
+				if err != nil {
+					return err
+				}
+
+				if !hit {
+					go saveVideo(cacheVideo[filename])
+				}
+
+				// Create result
+				results = append(results, &tele.VideoResult{
+					Cache: cacheVideo[filename].FileID,
+					Title: "Send video",
+					MIME:  "video/mp4",
+				})
+
+				results[0].SetResultID(filename)
+			} else {
+				if _, ok := cacheAlbum[filename]; ok {
+					photos := *cacheAlbum[filename]
+
+					for i, p := range photos {
+						results = append(results, &tele.PhotoResult{
+							URL:      p.FileURL,
+							ThumbURL: p.FileURL,
+						})
+						results[i].SetResultID(idGen(p.FileURL))
+					}
+
+					if !hit {
+						go saveAlbum(&photos, filename)
+					}
+				}
+			}
 		}
 
-		// Create result
-		results[0] = &tele.VideoResult{
-			Cache: cacheVideo[filename].FileID,
-			Title: "Send video",
-			MIME:  "video/mp4",
-		}
-
-		results[0].SetResultID(filename)
-
-		// Send video
 		return c.Answer(&tele.QueryResponse{
 			Results:   results,
 			CacheTime: 86400, // one day
 		})
 	} else {
-		results[0] = &tele.ArticleResult{
-			Title: "Not a valid instagram URL!",
-		}
+		results = append(results, &tele.ArticleResult{
+			Title: "Not a valid URL!",
+		})
 
 		results[0].SetResultID(text)
 

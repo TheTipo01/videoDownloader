@@ -16,6 +16,7 @@ var (
 	cfg        config
 	cacheVideo map[string]*tele.Video
 	cacheAlbum map[string]*[]*tele.Photo
+	cacheAudio map[string]*tele.Audio
 	db         *sql.DB
 )
 
@@ -42,6 +43,7 @@ func init() {
 
 	cacheVideo = make(map[string]*tele.Video)
 	cacheAlbum = make(map[string]*[]*tele.Photo)
+	cacheAudio = make(map[string]*tele.Audio)
 
 	// Open database connection
 	db, err = sql.Open("sqlite", "./data/cache.db")
@@ -50,7 +52,7 @@ func init() {
 		return
 	}
 
-	execQuery(videoTable, albumTable)
+	execQuery(videoTable, albumTable, audioTable)
 	load()
 }
 
