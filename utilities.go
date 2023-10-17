@@ -45,7 +45,6 @@ func contains(str string, checkFor []string) bool {
 
 func downloadYtDlp(link string) (string, bool) {
 	hit := true
-	lit.Debug(link)
 
 	filename := idGen(link) + ".mp4"
 
@@ -113,8 +112,16 @@ func downloadTikTok(link string) (string, bool, Media) {
 	// Remove the last four characters from filename
 	filename = filename[:len(filename)-4]
 
+	u, err := url.ParseRequestURI(cfg.Downloader)
+	if err != nil {
+		return "", false, Video
+	}
+
+	u.Path = "/api"
+	u.RawQuery = url.Values{"url": {link}}.Encode()
+
 	// Post to downloader
-	resp, err := http.Get(cfg.Downloader + "/api?url=" + link)
+	resp, err := http.Get(u.String())
 	if err == nil && resp.StatusCode == http.StatusOK {
 		var d Downloader
 		_ = json.NewDecoder(resp.Body).Decode(&d)
@@ -152,4 +159,27 @@ func cleanURL(link string) string {
 	u.RawQuery = q.Encode()
 
 	return u.String()
+}
+
+func selectAndDownload(text string) (string, bool, Media) {
+	var (
+		media         Media
+		filename      string
+		hit           bool
+		useDownloader bool
+	)
+
+	useDownloader = strings.Contains(text, "tiktok.com")
+
+	if useDownloader {
+		// Use the downloader to get videos and albums from TikTok
+		filename, hit, media = downloadTikTok(text)
+	}
+
+	if !useDownloader || filename == "" {
+		filename, hit = downloadYtDlp(text)
+		media = Video
+	}
+
+	return filename, hit, media
 }

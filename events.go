@@ -12,19 +12,7 @@ func videoDownload(c tele.Context) error {
 			link := cleanURL(c.Message().EntityText(e))
 
 			if contains(link, cfg.URLs) {
-				var (
-					media    Media
-					filename string
-					hit      bool
-				)
-
-				if strings.Contains(link, "tiktok.com") {
-					// Use the downloader to get videos and albums from TikTok
-					filename, hit, media = downloadTikTok(link)
-				} else {
-					filename, hit = downloadYtDlp(link)
-					media = Video
-				}
+				filename, hit, media := selectAndDownload(link)
 
 				if filename != "" {
 					if media == Video {
@@ -92,31 +80,19 @@ func inlineQuery(c tele.Context) error {
 	)
 
 	if isValidURL(text) && contains(text, cfg.URLs) {
-		var (
-			media    Media
-			filename string
-			hit      bool
-		)
-
 		text = cleanURL(text)
 
-		if strings.Contains(text, "tiktok.com") {
-			// Use the downloader to get videos and albums from TikTok
-			filename, hit, media = downloadTikTok(text)
-		} else {
-			filename, hit = downloadYtDlp(text)
-			media = Video
-		}
+		filename, hit, media := selectAndDownload(text)
 
 		if filename != "" {
 			if media == Video {
-				// Upload video to channel, so we can send it even in inline mode
-				_, err := c.Bot().Send(tele.ChatID(cfg.Channel), cacheVideo[filename])
-				if err != nil {
-					return err
-				}
-
 				if !hit {
+					// Upload video to channel, so we can send it even in inline mode
+					_, err := c.Bot().Send(tele.ChatID(cfg.Channel), cacheVideo[filename])
+					if err != nil {
+						return err
+					}
+
 					go saveVideo(cacheVideo[filename])
 				}
 
