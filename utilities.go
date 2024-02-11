@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -49,25 +50,64 @@ func downloadYtDlp(link string) (string, bool) {
 	filename := idGen(link) + ".mp4"
 
 	if _, ok := cacheVideo[filename]; !ok {
-		// Starts yt-dlp with the arguments to select the best audio
-		ytDlp := exec.Command("yt-dlp", "-f", "bestvideo+bestaudio", "-f", "mp4", "-q", "-a", "-", "--geo-bypass", "-o", "-")
-		ytDlp.Stdin = strings.NewReader(link)
-		out, _ := ytDlp.StdoutPipe()
-		_ = ytDlp.Start()
-
-		cacheVideo[filename] = &tele.Video{File: tele.FromReader(out), FileName: filename, MIME: "video/mp4"}
-
-		go func() {
-			err := ytDlp.Wait()
-			if err != nil {
-				lit.Error(err.Error())
-			}
-		}()
-
 		hit = false
+
+		// Gets info about songs
+		info := exec.Command("yt-dlp", "--ignore-errors", "-q", "--no-warnings", "-j", "-a", "-")
+		info.Stdin = strings.NewReader(link)
+
+		out, err := info.CombinedOutput()
+		if err != nil {
+			lit.Error(err.Error())
+			return "", hit
+		}
+
+		splittedOut := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+
+		// yt-dlp returned nothing
+		if strings.TrimSpace(splittedOut[0]) == "" {
+			return "", hit
+		}
+
+		// If it's only one video, use the usual downloader
+		if len(splittedOut) < 1 {
+			cacheVideo[filename] = &[]*tele.Video{downloadSingleVideo(link, filename)}
+		} else {
+			var count int
+
+			cacheVideo[filename] = &[]*tele.Video{}
+
+			for _, l := range splittedOut {
+				var data ytdlp
+				err := json.Unmarshal([]byte(l), &data)
+				if err == nil {
+					// We need to proxy the requests for telegram when downloading
+					*cacheVideo[filename] = append(*cacheVideo[filename], downloadSingleVideo(data.Url, filename, "--playlist-items", strconv.Itoa(count+1)))
+					count++
+				}
+			}
+		}
 	}
 
 	return filename, hit
+}
+
+func downloadSingleVideo(link string, filename string, arguments ...string) *tele.Video {
+	// Starts yt-dlp with the arguments to select the best audio
+	arguments = append(arguments, "-f", "bestvideo+bestaudio", "-f", "mp4", "-q", "-a", "-", "--geo-bypass", "-o", "-")
+	ytDlp := exec.Command("yt-dlp", arguments...)
+	ytDlp.Stdin = strings.NewReader(link)
+	out, _ := ytDlp.StdoutPipe()
+	_ = ytDlp.Start()
+
+	go func() {
+		err := ytDlp.Wait()
+		if err != nil {
+			lit.Error(err.Error())
+		}
+	}()
+
+	return &tele.Video{File: tele.FromReader(out), FileName: filename, MIME: "video/mp4"}
 }
 
 func downloadAudio(link string) (string, bool) {
@@ -129,7 +169,7 @@ func downloadTikTok(link string) (string, bool, Media) {
 		switch d.Type {
 		case "video":
 			filename += ".mp4"
-			cacheVideo[filename] = &tele.Video{File: tele.FromURL(d.VideoData.NwmVideoUrlHQ), MIME: "video/mp4", FileName: filename}
+			cacheVideo[filename] = &[]*tele.Video{{File: tele.FromURL(d.VideoData.NwmVideoUrlHQ), MIME: "video/mp4", FileName: filename}}
 			return filename, false, Video
 		case "image":
 			album := make([]*tele.Photo, len(d.ImageData.NoWatermarkImageList))

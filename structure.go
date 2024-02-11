@@ -26,3 +26,7 @@ type Downloader struct {
 		WatermarkImageList   []string `json:"watermark_image_list"`
 	} `json:"image_data"`
 }
+
+type ytdlp struct {
+	Url string `json:"url"`
+}

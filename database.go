@@ -34,7 +34,7 @@ func load() {
 	}
 
 	for rows.Next() {
-		var video tele.Video
+		var video []*tele.Video
 
 		err = rows.Scan(&filename, &bytes)
 		if err != nil {
@@ -87,10 +87,10 @@ func load() {
 	}
 }
 
-func saveVideo(video *tele.Video) {
+func saveVideo(video *[]*tele.Video) {
 	bytes, _ := json.Marshal(video)
 
-	_, err := db.Exec("INSERT INTO video (filename, video) VALUES (?, ?)", video.FileName, bytes)
+	_, err := db.Exec("INSERT INTO video (filename, video) VALUES (?, ?)", (*video)[0].FileName, bytes)
 	if err != nil {
 		lit.Error("Error executing query, %s", err)
 		return

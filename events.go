@@ -16,9 +16,27 @@ func videoDownload(c tele.Context) error {
 
 				if filename != "" {
 					if media == Video {
-						err := c.Reply(cacheVideo[filename], tele.Silent)
-						if err == nil && !hit {
-							go saveVideo(cacheVideo[filename])
+						if _, ok := cacheVideo[filename]; ok {
+							videos := *cacheVideo[filename]
+							album := make(tele.Album, 0, 10)
+
+							for i := 0; i < len(videos); i += 10 {
+								// Add photos to album
+								for j := 0; j < 10; j++ {
+									if i+j < len(videos) {
+										album = append(album, videos[i+j])
+									}
+								}
+
+								err := c.SendAlbum(album, tele.Silent)
+								if err != nil {
+									lit.Error(err.Error())
+								}
+							}
+
+							if !hit {
+								go saveVideo(cacheVideo[filename])
+							}
 						}
 					} else {
 						if _, ok := cacheAlbum[filename]; ok {
@@ -96,14 +114,15 @@ func inlineQuery(c tele.Context) error {
 					go saveVideo(cacheVideo[filename])
 				}
 
-				// Create result
-				results = append(results, &tele.VideoResult{
-					Cache: cacheVideo[filename].FileID,
-					Title: "Send video",
-					MIME:  "video/mp4",
-				})
+				for i, v := range *cacheVideo[filename] {
+					results = append(results, &tele.VideoResult{
+						Cache: v.FileID,
+						Title: "Send video",
+						MIME:  "video/mp4",
+					})
 
-				results[0].SetResultID(filename)
+					results[i].SetResultID(filename)
+				}
 			} else {
 				if _, ok := cacheAlbum[filename]; ok {
 					photos := *cacheAlbum[filename]

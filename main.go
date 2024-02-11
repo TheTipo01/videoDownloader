@@ -14,7 +14,7 @@ import (
 
 var (
 	cfg        config
-	cacheVideo map[string]*tele.Video
+	cacheVideo map[string]*[]*tele.Video
 	cacheAlbum map[string]*[]*tele.Photo
 	cacheAudio map[string]*tele.Audio
 	db         *sql.DB
@@ -41,7 +41,7 @@ func init() {
 		lit.LogLevel = lit.LogDebug
 	}
 
-	cacheVideo = make(map[string]*tele.Video)
+	cacheVideo = make(map[string]*[]*tele.Video)
 	cacheAlbum = make(map[string]*[]*tele.Photo)
 	cacheAudio = make(map[string]*tele.Audio)
 
