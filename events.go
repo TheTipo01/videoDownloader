@@ -105,10 +105,12 @@ func inlineQuery(c tele.Context) error {
 		if filename != "" {
 			if media == Video {
 				if !hit {
-					// Upload video to channel, so we can send it even in inline mode
-					_, err := c.Bot().Send(tele.ChatID(cfg.Channel), cacheVideo[filename])
-					if err != nil {
-						return err
+					// Upload videos to channel, so we can send it even in inline mode
+					for _, v := range *cacheVideo[filename] {
+						_, err := c.Bot().Send(tele.ChatID(cfg.Channel), v)
+						if err != nil {
+							return err
+						}
 					}
 
 					go saveVideo(cacheVideo[filename])
@@ -128,6 +130,8 @@ func inlineQuery(c tele.Context) error {
 					photos := *cacheAlbum[filename]
 
 					for i, p := range photos {
+						_, _ = c.Bot().Send(tele.ChatID(cfg.Channel), p)
+
 						results = append(results, &tele.PhotoResult{
 							URL:      p.FileURL,
 							ThumbURL: p.FileURL,
@@ -141,22 +145,16 @@ func inlineQuery(c tele.Context) error {
 				}
 			}
 		}
-
-		return c.Answer(&tele.QueryResponse{
-			Results:   results,
-			CacheTime: 86400, // one day
-		})
 	} else {
 		results = append(results, &tele.ArticleResult{
 			Title: "Not a valid URL!",
 		})
 
 		results[0].SetResultID(text)
-
-		// Send error
-		return c.Answer(&tele.QueryResponse{
-			Results:   results,
-			CacheTime: 86400, // one day
-		})
 	}
+
+	return c.Answer(&tele.QueryResponse{
+		Results:   results,
+		CacheTime: 86400, // one day
+	})
 }
